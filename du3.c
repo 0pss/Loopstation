@@ -1,10 +1,11 @@
 #define MINIAUDIO_IMPLEMENTATION
 #include "miniaudio.h"
+#include <termios.h>            //termios, TCSANOW, ECHO, ICANON
 
 #define SAMPLE_FORMAT ma_format_s16
 #define CHANNELS     1
 #define SAMPLE_RATE   44100
-#define BUFFER_SIZE  (int)(SAMPLE_RATE * CHANNELS * 50) // Adjust the buffer size as needed
+#define BUFFER_SIZE  (int)(SAMPLE_RATE * CHANNELS * 2) // Adjust the buffer size as needed
 
 //######################################################
 // TODO:
@@ -13,7 +14,7 @@
 
 int16_t audioBuffer[BUFFER_SIZE];
 ma_uint64 audioBufferPos = 0;
-ma_bool32 isRecording = MA_TRUE; // Flag to indicate whether recording is active
+ma_bool32 isRecording = MA_FALSE; // Flag to indicate whether recording is active
 ma_bool32 isSTOP = MA_FALSE; // Flag to indicate whether recording is active
 ma_uint64 firstNonSilent = 0;
 ma_uint64 lastNonSilent = BUFFER_SIZE - 1;
@@ -98,6 +99,9 @@ void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
 }
 
 int main() {
+    static struct termios oldt, newt;
+
+
     ma_result result;
     ma_device_config deviceConfig;
     ma_device device;
@@ -117,16 +121,40 @@ int main() {
     }
 
     ma_device_start(&device);
+    
+    /*tcgetattr gets the parameters of the current terminal
+    STDIN_FILENO will tell tcgetattr that it should write the settings
+    of stdin to oldt*/
+    tcgetattr( STDIN_FILENO, &oldt);
+    /*now the settings will be copied*/
+    newt = oldt;
 
-    printf("Recording...\n");
+    /*ICANON normally takes care that one line at a time will be processed
+    that means it will return if it sees a "\n" or an EOF or an EOL*/
+    newt.c_lflag &= ~(ICANON);          
+
+    /*Those new settings will be set to STDIN
+    TCSANOW tells tcsetattr to change attributes immediately. */
+    tcsetattr( STDIN_FILENO, TCSANOW, &newt);
+
+    printf("Ready!...\n");
     int c;
 
     while((c=getchar())!= 'q'){      
     
-        if( c == '1'){
-        isSTOP =!isSTOP;
+        if( c == '1' && isRecording == MA_FALSE){
+            printf("RECORDING TRACK 1\n");
+            isRecording = MA_TRUE;
+
+
+        }else if( c == '1' && isRecording == MA_TRUE){
+            printf("STOPPED RECORDING TRACK 1\n");
+            isSTOP = MA_TRUE;
+            
+
         }   
     }
+
 
     printf("Playback...\n");
 
@@ -137,6 +165,9 @@ int main() {
 
     // Uninitialize the sound and device
     ma_device_uninit(&device);
+    
+    /*restore the old settings*/
+    tcsetattr( STDIN_FILENO, TCSANOW, &oldt);
 
 
     return 0;
