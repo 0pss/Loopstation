@@ -10,9 +10,14 @@
 //######################################################
 // TODO:
 // 	- fadein/out
-//	- Multitrack&mute
+//	- Multitrack
+//	- mute
+//	- audiouffer loopover
+//	- overdubbing
 
 int16_t audioBuffer[BUFFER_SIZE];
+
+
 ma_uint64 audioBufferPos = 0;
 ma_bool32 isRecording = MA_FALSE; // Flag to indicate whether recording is active
 ma_bool32 isSTOP = MA_FALSE; // Flag to indicate whether recording is active
@@ -62,10 +67,10 @@ void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
             // Adjust the buffer position to play the non-silent section
             audioBufferPos = firstNonSilent;
             
-           printf("Audio Buffer:\n");
-            for (ma_uint64 i = firstNonSilent; i < lastNonSilent; ++i) {
-                printf("%d\n", audioBuffer[i]);
-            }
+//           printf("Audio Buffer:\n");
+//            for (ma_uint64 i = firstNonSilent; i < lastNonSilent; ++i) {
+//                printf("%d\n", audioBuffer[i]);
+//            }
         }else{
 
         // Copy input audio samples to the global buffer
